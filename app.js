@@ -27,16 +27,17 @@ const OVERPASS_ENDPOINTS = [
 
 // ── Overpass APIクエリ構築（シンプル化でタイムアウト回避）─
 function buildOverpassQuery(lat, lng, radiusM) {
-  // wayを除きnodeのみにして負荷を大幅削減、タイムアウトも25秒に設定
-  return `[out:json][timeout:25];
+  return `[out:json][timeout:15];
 (
   node["amenity"="place_of_worship"]["name"](around:${radiusM},${lat},${lng});
-  node["leisure"~"^(park|garden)$"]["name"](around:${radiusM},${lat},${lng});
-  node["tourism"~"^(museum|gallery|attraction|viewpoint)$"]["name"](around:${radiusM},${lat},${lng});
-  node["historic"]["name"](around:${radiusM},${lat},${lng});
-  node["amenity"~"^(cafe|restaurant)$"]["name"](around:${radiusM},${lat},${lng});
+  node["leisure"="park"]["name"](around:${radiusM},${lat},${lng});
+  node["leisure"="garden"]["name"](around:${radiusM},${lat},${lng});
+  node["tourism"="museum"]["name"](around:${radiusM},${lat},${lng});
+  node["tourism"="attraction"]["name"](around:${radiusM},${lat},${lng});
+  node["historic"="monument"]["name"](around:${radiusM},${lat},${lng});
+  node["historic"="castle"]["name"](around:${radiusM},${lat},${lng});
 );
-out 30;`;
+out 25;`;
 }
 
 // ── スポットタイプの判定 ──────────────────────────
@@ -192,7 +193,7 @@ async function fetchSpots(lat, lng, radiusM) {
 
   for (const url of OVERPASS_ENDPOINTS) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 18000);
+    const timer = setTimeout(() => controller.abort(), 12000);
 
     try {
       const res = await fetch(url, {
