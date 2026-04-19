@@ -4,6 +4,47 @@ let selectedKm = null;
 let leafletMap = null;
 let mapLayers = [];
 let isSpinning = false;
+let filterUnvisited = false;
+
+// ── 訪問済み駅（LocalStorage） ────────────────────
+const STORAGE_KEY = 'walk-app-visited';
+let visitedStations = new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'));
+
+function saveVisited() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify([...visitedStations]));
+  updateVisitedCount();
+}
+
+function toggleVisited() {
+  if (!selectedStation) return;
+  const name = selectedStation.name;
+  if (visitedStations.has(name)) {
+    visitedStations.delete(name);
+  } else {
+    visitedStations.add(name);
+  }
+  saveVisited();
+  updateVisitedBtn();
+}
+
+function toggleFilter() {
+  filterUnvisited = document.getElementById('filterVisited').checked;
+}
+
+function updateVisitedBtn() {
+  if (!selectedStation) return;
+  const btn = document.getElementById('visitedBtn');
+  const visited = visitedStations.has(selectedStation.name);
+  btn.textContent = visited ? '✅ 訪問済み（取り消す）' : '📍 訪問済みにする';
+  btn.classList.toggle('visited', visited);
+}
+
+function updateVisitedCount() {
+  const el = document.getElementById('visitedCount');
+  if (!el) return;
+  const count = visitedStations.size;
+  el.textContent = count > 0 ? `${count} / ${STATIONS.length}駅 訪問済み` : '';
+}
 
 const SLOT_ITEM_H = 64; // slot-item の height (px)
 
@@ -80,9 +121,19 @@ function spinRoulette() {
   document.getElementById('stationInfo').classList.remove('visible');
   document.querySelector('.slot-highlight').classList.remove('active');
 
-  // ターゲット駅をランダムに決定
-  const targetIdx = Math.floor(Math.random() * STATIONS.length);
-  const target = STATIONS[targetIdx];
+  // ターゲット駅をランダムに決定（フィルター考慮）
+  const pool = filterUnvisited
+    ? STATIONS.filter(s => !visitedStations.has(s.name))
+    : STATIONS;
+
+  if (pool.length === 0) {
+    alert('全ての駅を訪問済みです！おめでとうございます🎉\nフィルターをオフにしてもう一度試してください。');
+    isSpinning = false;
+    btn.disabled = false;
+    return;
+  }
+
+  const target = pool[Math.floor(Math.random() * pool.length)];
 
   // スロットアイテムを生成（全80コマ、最後に目標駅）
   const TOTAL = 80;
@@ -135,6 +186,8 @@ function onSelected(station) {
   document.getElementById('stationName').textContent = station.name + ' 駅';
   document.getElementById('stationLine').textContent = station.line;
   document.getElementById('stationDesc').textContent = station.description;
+
+  updateVisitedBtn();
 
   const info = document.getElementById('stationInfo');
   info.classList.remove('visible');
@@ -463,4 +516,5 @@ function triggerConfetti() {
   item.style.color = 'var(--text-muted)';
   item.textContent = '？ ？ ？';
   track.appendChild(item);
+  updateVisitedCount();
 })();

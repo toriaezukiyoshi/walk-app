@@ -39,6 +39,16 @@
           <div class="slot-highlight"></div>
         </div>
 
+        <!-- 未訪問フィルター -->
+        <div class="visited-filter">
+          <label class="toggle-label">
+            <input type="checkbox" id="filterVisited" onchange="toggleFilter()">
+            <span class="toggle-switch"></span>
+            未訪問の駅のみ選ぶ
+          </label>
+          <span class="visited-count" id="visitedCount"></span>
+        </div>
+
         <button class="btn btn--roulette" id="rouletteBtn" onclick="spinRoulette()">
           🎲 ルーレットをまわす
         </button>
@@ -48,6 +58,7 @@
           <div class="station-info__name" id="stationName"></div>
           <div class="station-info__line" id="stationLine"></div>
           <p class="station-info__desc" id="stationDesc"></p>
+          <button class="btn-visited" id="visitedBtn" onclick="toggleVisited()"></button>
         </div>
       </section>
 
