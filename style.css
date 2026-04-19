@@ -482,6 +482,23 @@ a:hover { text-decoration: underline; }
   flex-wrap: wrap;
   gap: 10px;
 }
+.spot-maps-link {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-lt);
+  border: 1px solid rgba(91,62,245,0.2);
+  border-radius: 999px;
+  padding: 3px 12px;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.spot-maps-link:hover {
+  background: #ddd6fe;
+  text-decoration: none;
+}
 
 /* タイプ別カラー */
 .type-shrine   { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; }

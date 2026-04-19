@@ -393,6 +393,9 @@ function renderSpots(spots, station) {
             <span>🚶 約${walkMin}分</span>
             ${spot.tags.opening_hours ? `<span>🕐 ${spot.tags.opening_hours}</span>` : ''}
           </div>
+          <a class="spot-maps-link" href="https://www.google.com/maps/search/?q=${spot.lat},${spot.lng}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
+            🗺️ Googleマップで開く
+          </a>
         </div>
       </div>
     `;
