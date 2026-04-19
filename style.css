@@ -677,6 +677,7 @@ a:hover { text-decoration: underline; }
   top: -12px;
   border-radius: 3px;
   animation: fall linear forwards;
+  pointer-events: none;
 }
 @keyframes fall {
   to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
