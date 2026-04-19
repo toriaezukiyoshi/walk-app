@@ -65,6 +65,23 @@
       <!-- ── 距離設定セクション ── -->
       <section class="card distance-section hidden" id="distanceSection">
         <div class="section-title">
+          <span class="section-title__icon">🎯</span>
+          モードを選ぼう
+        </div>
+        <div class="mode-grid">
+          <button class="mode-btn selected" data-mode="normal" onclick="selectMode(this)">
+            <span class="mode-btn__icon">🗺️</span>
+            <span class="mode-btn__name">通常モード</span>
+            <span class="mode-btn__desc">神社・公園・史跡など</span>
+          </button>
+          <button class="mode-btn" data-mode="chinese" onclick="selectMode(this)">
+            <span class="mode-btn__icon">🥟</span>
+            <span class="mode-btn__name">町中華モード</span>
+            <span class="mode-btn__desc">近くの中華料理店を探す</span>
+          </button>
+        </div>
+
+        <div class="section-title" style="margin-top:24px">
           <span class="section-title__icon">🚶</span>
           散歩距離を選ぼう
         </div>

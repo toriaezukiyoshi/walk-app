@@ -5,6 +5,7 @@ let leafletMap = null;
 let mapLayers = [];
 let isSpinning = false;
 let filterUnvisited = false;
+let selectedMode = 'normal';
 
 // ── 訪問済み駅（LocalStorage） ────────────────────
 const STORAGE_KEY = 'walk-app-visited';
@@ -57,7 +58,15 @@ const TYPE_CONFIG = {
   tourism:  { label: '観光・名所', icon: '🌆', color: '#ec4899', cls: 'type-tourism', markerColor: '#ec4899' },
   historic: { label: '史跡・文化財', icon: '🏯', color: '#f59e0b', cls: 'type-historic',markerColor: '#d97706' },
   other:    { label: 'その他',     icon: '📌', color: '#7c5cfc', cls: 'type-other',   markerColor: '#7c5cfc' },
+  chinese:  { label: '町中華',     icon: '🥟', color: '#dc2626', cls: 'type-chinese', markerColor: '#dc2626' },
 };
+
+// ── モード選択 ────────────────────────────────────
+function selectMode(btn) {
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedMode = btn.dataset.mode;
+}
 
 // ── スポットタイプをWikipediaタイトルから推定 ────────
 function resolveTypeFromName(name) {
@@ -215,8 +224,50 @@ function startSearch() {
     });
 }
 
+// ── 町中華モード：Overpassで中華料理店を取得 ─────
+const OVERPASS_ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+];
+
+async function fetchChineseSpots(lat, lng, radiusM) {
+  const query = `[out:json][timeout:10];
+(
+  node["amenity"="restaurant"]["cuisine"~"chinese"]["name"](around:${radiusM},${lat},${lng});
+  node["amenity"="fast_food"]["cuisine"~"chinese"]["name"](around:${radiusM},${lat},${lng});
+);
+out 25;`;
+
+  for (const url of OVERPASS_ENDPOINTS) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10000);
+    try {
+      const res = await fetch(url, { method: 'POST', body: query, signal: controller.signal });
+      clearTimeout(timer);
+      if (!res.ok) continue;
+      const data = await res.json();
+      return data.elements
+        .filter(el => el.tags?.name && el.lat && el.lon)
+        .map(el => ({
+          name: el.tags['name:ja'] || el.tags.name,
+          lat: el.lat,
+          lng: el.lon,
+          distM: calcDist(lat, lng, el.lat, el.lon),
+          type: 'chinese',
+          wikiUrl: null,
+        }))
+        .sort((a, b) => a.distM - b.distM)
+        .slice(0, 25);
+    } catch (e) {
+      clearTimeout(timer);
+    }
+  }
+  throw new Error('町中華情報の取得に失敗しました。再試行してください。');
+}
+
 // ── Wikipedia 地理検索APIでスポット取得 ──────────
 async function fetchSpots(lat, lng, radiusM) {
+  if (selectedMode === 'chinese') return fetchChineseSpots(lat, lng, radiusM);
   const radius = Math.min(Math.round(radiusM), 10000);
   const url = `https://ja.wikipedia.org/w/api.php?action=query&list=geosearch` +
     `&gscoord=${lat}|${lng}&gsradius=${radius}&gslimit=30&format=json&origin=*`;

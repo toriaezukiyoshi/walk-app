@@ -371,6 +371,42 @@ a:hover { text-decoration: underline; }
 }
 .btn--retry:hover { background: var(--border); }
 
+/* ── モード選択 ──────────────────────────────────── */
+.mode-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.mode-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 18px 12px;
+  background: var(--bg3);
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  cursor: pointer;
+  font-family: var(--font);
+  color: var(--text);
+  transition: all 0.2s;
+}
+.mode-btn:hover {
+  border-color: var(--accent);
+  background: var(--accent-lt);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+.mode-btn.selected {
+  border-color: var(--accent);
+  background: var(--accent-lt);
+  box-shadow: 0 0 0 3px rgba(91,62,245,0.15);
+}
+.mode-btn__icon { font-size: 1.8rem; }
+.mode-btn__name { font-size: 0.9rem; font-weight: 700; }
+.mode-btn__desc { font-size: 0.7rem; color: var(--text-muted); text-align: center; }
+
 /* ── 距離選択 ────────────────────────────────────── */
 .distance-grid {
   display: grid;
@@ -604,6 +640,7 @@ a:hover { text-decoration: underline; }
 .type-tourism  { background: #fce7f3; color: #9d174d; border-color: #f9a8d4; }
 .type-historic { background: #fef3c7; color: #92400e; border-color: #fcd34d; }
 .type-other    { background: #ede9ff; color: #5b21b6; border-color: #c4b5fd; }
+.type-chinese  { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
 
 /* ── フッター ────────────────────────────────────── */
 .footer {
