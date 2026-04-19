@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>東京散歩ルーレット</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 紙吹雪 -->
+  <div id="confetti" aria-hidden="true"></div>
+
+  <div class="page">
+    <!-- ヘッダー -->
+    <header class="hero">
+      <div class="hero__inner">
+        <p class="hero__label">TOKYO WALK ROULETTE</p>
+        <h1 class="hero__title">東京散歩<br>ルーレット</h1>
+        <p class="hero__sub">23区の全駅からランダムに選んで、あなただけの散歩コースを発見しよう</p>
+      </div>
+    </header>
+
+    <main class="main">
+
+      <!-- ── ルーレットセクション ── -->
+      <section class="card roulette-section" id="rouletteSection">
+        <div class="roulette-label" id="rouletteLabel">駅をランダムに選択</div>
+
+        <div class="slot-wrapper">
+          <div class="slot-mask">
+            <div class="slot-track" id="slotTrack"></div>
+          </div>
+          <div class="slot-overlay slot-overlay--top"></div>
+          <div class="slot-overlay slot-overlay--bottom"></div>
+          <div class="slot-highlight"></div>
+        </div>
+
+        <button class="btn btn--roulette" id="rouletteBtn" onclick="spinRoulette()">
+          🎲 ルーレットをまわす
+        </button>
+
+        <!-- 選ばれた駅の情報 -->
+        <div class="station-info" id="stationInfo">
+          <div class="station-info__name" id="stationName"></div>
+          <div class="station-info__line" id="stationLine"></div>
+          <p class="station-info__desc" id="stationDesc"></p>
+        </div>
+      </section>
+
+      <!-- ── 距離設定セクション ── -->
+      <section class="card distance-section hidden" id="distanceSection">
+        <div class="section-title">
+          <span class="section-title__icon">🚶</span>
+          散歩距離を選ぼう
+        </div>
+        <div class="distance-grid" id="distanceGrid">
+          <button class="dist-btn" data-km="1" onclick="selectDistance(this)">
+            <span class="dist-btn__km">1 km</span>
+            <span class="dist-btn__info">約15分 · 1,500歩</span>
+          </button>
+          <button class="dist-btn" data-km="3" onclick="selectDistance(this)">
+            <span class="dist-btn__km">3 km</span>
+            <span class="dist-btn__info">約45分 · 4,500歩</span>
+          </button>
+          <button class="dist-btn" data-km="5" onclick="selectDistance(this)">
+            <span class="dist-btn__km">5 km</span>
+            <span class="dist-btn__info">約75分 · 7,700歩</span>
+          </button>
+        </div>
+        <button class="btn btn--start hidden" id="startBtn" onclick="startSearch()">
+          🗺️ スポットを探す
+        </button>
+      </section>
+
+      <!-- ── 地図セクション ── -->
+      <section class="card map-section hidden" id="mapSection">
+        <div class="section-title">
+          <span class="section-title__icon">🗺️</span>
+          散歩マップ
+          <span class="badge" id="mapBadge"></span>
+        </div>
+
+        <!-- ローディング -->
+        <div class="loading" id="mapLoading">
+          <div class="spinner"></div>
+          <p class="loading__text">スポットを取得中...</p>
+        </div>
+
+        <!-- エラー表示 -->
+        <div class="error-box hidden" id="errorBox">
+          <p id="errorMsg"></p>
+          <button class="btn btn--retry" onclick="retrySearch()">再試行する</button>
+        </div>
+
+        <!-- 地図本体 -->
+        <div id="map"></div>
+
+        <!-- ルート要約 -->
+        <div class="route-stats" id="routeStats"></div>
+      </section>
+
+      <!-- ── スポット一覧 ── -->
+      <section class="card spots-section hidden" id="spotsSection">
+        <div class="section-title">
+          <span class="section-title__icon">📍</span>
+          周辺スポット一覧
+        </div>
+        <div class="spots-list" id="spotsList"></div>
+      </section>
+
+    </main>
+
+    <footer class="footer">
+      <p>© 2026 東京散歩ルーレット &nbsp;|&nbsp;
+        地図データ © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>
+        contributors © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>
+        &nbsp;|&nbsp; スポット © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> via Overpass API
+      </p>
+    </footer>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
