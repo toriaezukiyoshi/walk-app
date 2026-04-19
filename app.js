@@ -59,37 +59,13 @@ const TYPE_CONFIG = {
   other:    { label: 'その他',     icon: '📌', color: '#7c5cfc', cls: 'type-other',   markerColor: '#7c5cfc' },
 };
 
-// フォールバック付きOverpass APIエンドポイント
-const OVERPASS_ENDPOINTS = [
-  'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
-  'https://overpass.openstreetmap.ru/api/interpreter',
-];
-
-// ── Overpass APIクエリ構築（シンプル化でタイムアウト回避）─
-function buildOverpassQuery(lat, lng, radiusM) {
-  return `[out:json][timeout:15];
-(
-  node["amenity"="place_of_worship"]["name"](around:${radiusM},${lat},${lng});
-  node["leisure"="park"]["name"](around:${radiusM},${lat},${lng});
-  node["leisure"="garden"]["name"](around:${radiusM},${lat},${lng});
-  node["tourism"="museum"]["name"](around:${radiusM},${lat},${lng});
-  node["tourism"="attraction"]["name"](around:${radiusM},${lat},${lng});
-  node["historic"="monument"]["name"](around:${radiusM},${lat},${lng});
-  node["historic"="castle"]["name"](around:${radiusM},${lat},${lng});
-);
-out 25;`;
-}
-
-// ── スポットタイプの判定 ──────────────────────────
-function resolveType(tags) {
-  if (tags.amenity === 'place_of_worship') return 'shrine';
-  if (tags.leisure === 'park' || tags.leisure === 'garden') return 'park';
-  if (tags.tourism === 'museum' || tags.tourism === 'gallery') return 'museum';
-  if (tags.tourism === 'attraction' || tags.tourism === 'viewpoint') return 'tourism';
-  if (tags.historic) return 'historic';
-  if (tags.amenity === 'cafe' || tags.amenity === 'restaurant') return 'cafe';
-  return 'other';
+// ── スポットタイプをWikipediaタイトルから推定 ────────
+function resolveTypeFromName(name) {
+  if (/神社|寺|寺院|大社|八幡|稲荷|権現|観音|不動|山王/.test(name)) return 'shrine';
+  if (/公園|庭園|緑地|広場|植物園/.test(name)) return 'park';
+  if (/博物館|美術館|記念館|資料館|ギャラリー/.test(name)) return 'museum';
+  if (/城|史跡|旧跡|遺跡|古墳|御所|陵/.test(name)) return 'historic';
+  return 'tourism';
 }
 
 // ── Haversine距離計算 ─────────────────────────────
@@ -239,72 +215,42 @@ function startSearch() {
     });
 }
 
-// ── Overpass APIフェッチ（フォールバック＋タイムアウト付き）─
+// ── Wikipedia 地理検索APIでスポット取得 ──────────
 async function fetchSpots(lat, lng, radiusM) {
-  const query = buildOverpassQuery(lat, lng, radiusM);
-  let lastError = null;
+  const radius = Math.min(Math.round(radiusM), 10000);
+  const url = `https://ja.wikipedia.org/w/api.php?action=query&list=geosearch` +
+    `&gscoord=${lat}|${lng}&gsradius=${radius}&gslimit=30&format=json&origin=*`;
 
-  for (const url of OVERPASS_ENDPOINTS) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 12000);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
 
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        body: query,
-        signal: controller.signal,
-      });
-      clearTimeout(timer);
-
-      if (!res.ok) {
-        lastError = new Error(`APIエラー: ${res.status}（${url}）`);
-        continue; // 次のエンドポイントを試す
-      }
-
-      const data = await res.json();
-      return parseSpots(data.elements, lat, lng, radiusM);
-
-    } catch (e) {
-      clearTimeout(timer);
-      if (e.name === 'AbortError') {
-        lastError = new Error(`タイムアウト（${url}）`);
-      } else {
-        lastError = new Error(`接続エラー（${url}）`);
-      }
-      // 次のエンドポイントへ
-    }
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timer);
+    if (!res.ok) throw new Error(`APIエラー: ${res.status}`);
+    const data = await res.json();
+    return parseWikiSpots(data.query.geosearch, lat, lng);
+  } catch (e) {
+    clearTimeout(timer);
+    if (e.name === 'AbortError') throw new Error('接続がタイムアウトしました。再試行してください。');
+    throw new Error('スポット情報の取得に失敗しました。再試行してください。');
   }
-
-  throw new Error('全てのサーバーへの接続に失敗しました。しばらく待ってから再試行してください。');
 }
 
-// ── スポットデータを整形 ──────────────────────────
-function parseSpots(elements, stLat, stLng, radiusM) {
-  const seen = new Set();
-  const spots = [];
-
-  for (const el of elements) {
-    const name = el.tags?.name;
-    if (!name || seen.has(name)) continue;
-    seen.add(name);
-
-    // way要素はcenterを使う
-    const lat = el.lat ?? el.center?.lat;
-    const lng = el.lon ?? el.center?.lon;
-    if (!lat || !lng) continue;
-
-    const distM = calcDist(stLat, stLng, lat, lng);
-    if (distM > radiusM * 1.1) continue; // 少し余裕を持たせる
-
-    const type = resolveType(el.tags);
-    const nameJa = el.tags['name:ja'] || name;
-
-    spots.push({ name: nameJa, lat, lng, distM, type, tags: el.tags });
-  }
-
-  // 距離順でソートして最大30件
-  spots.sort((a, b) => a.distM - b.distM);
-  return spots.slice(0, 30);
+// ── Wikipediaスポットデータを整形 ────────────────
+function parseWikiSpots(items, stLat, stLng) {
+  return items
+    .filter(item => item.title && item.lat && item.lon)
+    .map(item => ({
+      name: item.title,
+      lat: item.lat,
+      lng: item.lon,
+      distM: item.dist,
+      type: resolveTypeFromName(item.title),
+      wikiUrl: `https://ja.wikipedia.org/wiki/${encodeURIComponent(item.title)}`,
+    }))
+    .sort((a, b) => a.distM - b.distM)
+    .slice(0, 25);
 }
 
 // ── 地図描画 ──────────────────────────────────────
@@ -353,7 +299,7 @@ function renderMap(station, spots, km) {
       <b>${spot.name}</b>
       <br><span class="popup-type ${cfg.cls}">${cfg.icon} ${cfg.label}</span>
       <br><span class="popup-dist">📍 駅から約${distStr}</span>
-      ${spot.tags.opening_hours ? `<br><span class="popup-dist">🕐 ${spot.tags.opening_hours}</span>` : ''}
+      ${spot.wikiUrl ? `<br><a href="${spot.wikiUrl}" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--accent)">📖 Wikipediaで見る</a>` : ''}
     `);
     mapLayers.push(marker);
   });
@@ -440,15 +386,14 @@ function renderSpots(spots, station) {
             <span class="spot-name">${spot.name}</span>
             <span class="spot-type ${cfg.cls}">${cfg.icon} ${cfg.label}</span>
           </div>
-          ${spot.tags['description'] || spot.tags['note'] ? `<p class="spot-desc">${spot.tags['description'] || spot.tags['note']}</p>` : ''}
           <div class="spot-meta">
             <span>📍 駅から約${distStr}</span>
             <span>🚶 約${walkMin}分</span>
-            ${spot.tags.opening_hours ? `<span>🕐 ${spot.tags.opening_hours}</span>` : ''}
           </div>
-          <a class="spot-maps-link" href="https://www.google.com/maps/search/?q=${spot.lat},${spot.lng}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
-            🗺️ Googleマップで開く
-          </a>
+          <div class="spot-links" onclick="event.stopPropagation()">
+            <a class="spot-maps-link" href="https://www.google.com/maps/search/?q=${spot.lat},${spot.lng}" target="_blank" rel="noopener">🗺️ Googleマップ</a>
+            ${spot.wikiUrl ? `<a class="spot-maps-link spot-wiki-link" href="${spot.wikiUrl}" target="_blank" rel="noopener">📖 Wikipedia</a>` : ''}
+          </div>
         </div>
       </div>
     `;

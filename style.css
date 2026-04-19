@@ -565,9 +565,14 @@ a:hover { text-decoration: underline; }
   flex-wrap: wrap;
   gap: 10px;
 }
+.spot-links {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
 .spot-maps-link {
   display: inline-block;
-  margin-top: 8px;
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--accent);
@@ -581,6 +586,14 @@ a:hover { text-decoration: underline; }
 .spot-maps-link:hover {
   background: #ddd6fe;
   text-decoration: none;
+}
+.spot-wiki-link {
+  color: #1d4ed8;
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+.spot-wiki-link:hover {
+  background: #bfdbfe;
 }
 
 /* タイプ別カラー */
